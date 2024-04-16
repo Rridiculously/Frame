@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type HandleFunc func(ctx *Context)
+type HandleFunc func(ctx Context)
 
 // 确保一定实现Server接口
 var _ Server = &HTTPServer{}
