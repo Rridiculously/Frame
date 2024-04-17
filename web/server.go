@@ -24,6 +24,13 @@ type Server interface {
 }
 
 type HTTPServer struct {
+	*router
+}
+
+func NewHTTPServer() *HTTPServer {
+	return &HTTPServer{
+		router: newRouter(),
+	}
 }
 
 // ServeHTTP 处理请求入口
@@ -39,9 +46,10 @@ func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request
 func (h *HTTPServer) serve(ctx *Context) {
 
 }
-func (h *HTTPServer) AddRoute(method string, path string, handleFunc HandleFunc) {
 
-}
+//func (h *HTTPServer) AddRoute(method string, path string, handleFunc HandleFunc) {
+//
+//}
 
 func (h *HTTPServer) Get(path string, handleFunc HandleFunc) {
 	h.AddRoute(http.MethodGet, path, handleFunc)
