@@ -8,7 +8,7 @@ import (
 func TestServer(t *testing.T) {
 	h := &HTTPServer{}
 
-	h.AddRoute(http.MethodGet, "/user", func(ctx Context) {
+	h.addRoute(http.MethodGet, "/user", func(ctx Context) {
 
 	})
 	h.Get("/user", func(ctx Context) {})

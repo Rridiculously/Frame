@@ -11,7 +11,7 @@ import (
 func TestServer_e2e(t *testing.T) {
 	h := &HTTPServer{}
 
-	h.AddRoute(http.MethodGet, "/user", func(ctx Context) {
+	h.addRoute(http.MethodGet, "/user", func(ctx Context) {
 		fmt.Println("handler")
 	})
 	handler1 := func(ctx Context) {
@@ -20,7 +20,7 @@ func TestServer_e2e(t *testing.T) {
 	handler2 := func(ctx Context) {
 		fmt.Println("handler2")
 	}
-	h.AddRoute(http.MethodGet, "/user", func(ctx Context) {
+	h.addRoute(http.MethodGet, "/user", func(ctx Context) {
 		handler2(ctx)
 		handler1(ctx)
 	})

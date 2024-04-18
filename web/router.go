@@ -1,6 +1,9 @@
 package web
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // 支持对路由树操作
 // 森林
@@ -14,7 +17,22 @@ func newRouter() *router {
 		trees: make(map[string]*node),
 	}
 }
-func (r *router) AddRoute(method string, path string, handleFunc HandleFunc) {
+
+// addRoute 限制 Path 必须以 / 开头， 不能 / 结尾，。也不能有连续的 / 例如： ///
+func (r *router) addRoute(method string, path string, handleFunc HandleFunc) {
+	if path == "" || path[0] != '/' {
+		panic("web: path must start with '/'")
+	}
+	if path != "/" && path[len(path)-1] == '/' {
+		panic("web: path must not end with '/'")
+	}
+	if handleFunc == nil {
+		panic("web: handleFunc is nil")
+	}
+	if method == "" {
+		panic("web: method is empty")
+	}
+
 	// 判断是否已经存在,找到树
 	root, ok := r.trees[method]
 	if !ok {
@@ -24,18 +42,56 @@ func (r *router) AddRoute(method string, path string, handleFunc HandleFunc) {
 		}
 		r.trees[method] = root
 	}
-	path = path[1:]
+
+	// 根节点特殊处理
+	if path == "/" {
+		if root.handler != nil {
+			panic(fmt.Sprintf("web: path '%s' already exists", path))
+		}
+		root.handler = handleFunc
+		return
+	}
+
 	// 切割 path
-	segs := strings.Split(path, "/")
+	segs := strings.Split(path[1:], "/")
 	for _, seg := range segs {
+		// 校验连续的 /
+		if seg == "" {
+			panic("web: path segment is empty")
+		}
 		// 递归下去，找准位置
 		// 中途有节点不存在需要创造出来
-		children := root.childOrCreate(seg)
-		root = children
+		child := root.childOrCreate(seg)
+		root = child
+	}
+	if root.handler != nil {
+		panic(fmt.Sprintf("web: path '%s' already exists", path))
 	}
 	root.handler = handleFunc
 }
+func (r *router) findRoute(method string, path string) (*node, bool) {
+	root, ok := r.trees[method]
+	if !ok {
+		return nil, false
+	}
+	if path == "/" {
+		return root, true
+	}
+	// 去掉开头和结尾的 /
+	path = strings.Trim(path, "/")
 
+	// 切割 path
+	segs := strings.Split(path, "/")
+	for _, seg := range segs {
+		child, found := root.childOf(seg)
+		if !found {
+			return nil, false
+		}
+		root = child
+	}
+	return root, true
+
+}
 func (n *node) childOrCreate(seg string) *node {
 	if n.children == nil {
 		n.children = make(map[string]*node)
@@ -49,6 +105,14 @@ func (n *node) childOrCreate(seg string) *node {
 		n.children[seg] = res
 	}
 	return res
+}
+
+func (n *node) childOf(seg string) (*node, bool) {
+	if n.children == nil {
+		return nil, false
+	}
+	child, ok := n.children[seg]
+	return child, ok
 }
 
 //	type tree struct {
