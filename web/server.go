@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type HandleFunc func(ctx Context)
+type HandleFunc func(ctx *Context)
 
 // 确保一定实现Server接口
 var _ Server = &HTTPServer{}
@@ -44,10 +44,16 @@ func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request
 }
 
 func (h *HTTPServer) serve(ctx *Context) {
-
+	n, ok := h.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !ok || n.handler == nil {
+		ctx.Resp.WriteHeader(http.StatusNotFound)
+		_, _ = ctx.Resp.Write([]byte("404 not found"))
+		return
+	}
+	n.handler(ctx)
 }
 
-//func (h *HTTPServer) addRoute(method string, path string, handleFunc HandleFunc) {
+//func (h *hTTPServer) addRoute(method string, path string, handleFunc HandleFunc) {
 //
 //}
 
@@ -71,7 +77,7 @@ func (h *HTTPServer) Options(path string, handleFunc HandleFunc) {
 	h.addRoute(http.MethodOptions, path, handleFunc)
 }
 
-// Start func (h *HTTPServer) AddRoute1(method string, path string, handlers ...HandleFunc) {
+// Start func (h *hTTPServer) AddRoute1(method string, path string, handlers ...HandleFunc) {
 //
 // }
 func (h *HTTPServer) Start(addr string) error {

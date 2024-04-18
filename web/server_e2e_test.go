@@ -9,20 +9,23 @@ import (
 )
 
 func TestServer_e2e(t *testing.T) {
-	h := &HTTPServer{}
+	h := NewHTTPServer()
 
-	h.addRoute(http.MethodGet, "/user", func(ctx Context) {
-		fmt.Println("handler")
-	})
-	handler1 := func(ctx Context) {
+	//h.addRoute(http.MethodGet, "/user", func(ctx *Context) {
+	//	fmt.Println("handler")
+	//})
+	handler1 := func(ctx *Context) {
 		fmt.Println("handler1")
 	}
-	handler2 := func(ctx Context) {
+	handler2 := func(ctx *Context) {
 		fmt.Println("handler2")
 	}
-	h.addRoute(http.MethodGet, "/user", func(ctx Context) {
+	h.addRoute(http.MethodGet, "/user", func(ctx *Context) {
 		handler2(ctx)
 		handler1(ctx)
+	})
+	h.addRoute(http.MethodGet, "/order/detail", func(ctx *Context) {
+		_, _ = ctx.Resp.Write([]byte("order detail"))
 	})
 	//h.AddRoute1(http.MethodGet, "/user", func(ctx *Context) {
 	//
