@@ -33,6 +33,10 @@ func TestRouter_AddRoute(t *testing.T) {
 		},
 		{
 			method: http.MethodPost,
+			path:   "/order/*",
+		},
+		{
+			method: http.MethodPost,
 			path:   "/login",
 		},
 	}
@@ -67,10 +71,14 @@ func TestRouter_AddRoute(t *testing.T) {
 					"order": &node{
 						path: "order",
 						children: map[string]*node{
-							"create": &node{
-								path:    "create",
+							"detail": &node{
+								path:    "detail",
 								handler: mockHandler,
 							},
+						},
+						starChild: &node{
+							path:    "*",
+							handler: mockHandler,
 						},
 					},
 					"login": &node{
@@ -113,6 +121,10 @@ func (n *node) equal(y *node) (string, bool) {
 
 	if len(y.children) != len(n.children) {
 		return fmt.Sprintln("子节点数量不一致"), false
+	}
+
+	if n.starChild == nil {
+		return n.starChild.equal(y.starChild)
 	}
 	// 比较 handler
 	nHandler := reflect.ValueOf(n.handler)

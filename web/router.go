@@ -93,6 +93,12 @@ func (r *router) findRoute(method string, path string) (*node, bool) {
 
 }
 func (n *node) childOrCreate(seg string) *node {
+	if seg == "*" {
+		n.starChild = &node{
+			path: seg,
+		}
+		return n.starChild
+	}
 	if n.children == nil {
 		n.children = make(map[string]*node)
 	}
@@ -107,12 +113,16 @@ func (n *node) childOrCreate(seg string) *node {
 	return res
 }
 
+// childOf 优先考虑静态匹配，匹配不上在考虑通配符匹配
 func (n *node) childOf(seg string) (*node, bool) {
 	if n.children == nil {
-		return nil, false
+		return n.starChild, n.starChild != nil
 	}
 	child, ok := n.children[seg]
-	return child, ok
+	if !ok {
+		return n.starChild, n.starChild != nil
+	}
+	return child, true
 }
 
 //	type tree struct {
@@ -120,9 +130,13 @@ func (n *node) childOf(seg string) (*node, bool) {
 //	}
 type node struct {
 	path string
+
+	// 静态匹配节点
 	// 子 path 到子节点的映射
 	children map[string]*node
 	handler  HandleFunc
 
+	// 通配符匹配
+	starChild *node
 	// 用户注册业务逻辑
 }
