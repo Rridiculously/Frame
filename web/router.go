@@ -69,31 +69,57 @@ func (r *router) addRoute(method string, path string, handleFunc HandleFunc) {
 	}
 	root.handler = handleFunc
 }
-func (r *router) findRoute(method string, path string) (*node, bool) {
+func (r *router) findRoute(method string, path string) (*matchInfo, bool) {
 	root, ok := r.trees[method]
 	if !ok {
 		return nil, false
 	}
 	if path == "/" {
-		return root, true
+		return &matchInfo{
+			n: root,
+		}, true
 	}
 	// 去掉开头和结尾的 /
 	path = strings.Trim(path, "/")
 
 	// 切割 path
 	segs := strings.Split(path, "/")
+	var pathParams map[string]string
 	for _, seg := range segs {
-		child, found := root.childOf(seg)
+		child, paramChild, found := root.childOf(seg)
 		if !found {
 			return nil, false
 		}
+		// 命中路径参数
+		if paramChild {
+			if pathParams == nil {
+				pathParams = make(map[string]string)
+			}
+			pathParams[child.path[1:]] = seg
+		}
 		root = child
 	}
-	return root, true
+
+	return &matchInfo{
+		n:          root,
+		pathParams: pathParams,
+	}, true
 
 }
 func (n *node) childOrCreate(seg string) *node {
+	if seg[0] == ':' {
+		if n.starChild != nil {
+			panic("web: 不允许同时注册路径参数和通配符匹配，已有通配符匹配")
+		}
+		n.paramChild = &node{
+			path: seg,
+		}
+		return n.paramChild
+	}
 	if seg == "*" {
+		if n.paramChild != nil {
+			panic("web: 不允许同时注册路径参数和通配符匹配，已有路径参数")
+		}
 		n.starChild = &node{
 			path: seg,
 		}
@@ -114,15 +140,22 @@ func (n *node) childOrCreate(seg string) *node {
 }
 
 // childOf 优先考虑静态匹配，匹配不上在考虑通配符匹配
-func (n *node) childOf(seg string) (*node, bool) {
+// 返回值1：子节点 2：是否路径参数 3： 命中没有
+func (n *node) childOf(seg string) (*node, bool, bool) {
 	if n.children == nil {
-		return n.starChild, n.starChild != nil
+		if n.paramChild != nil {
+			return n.paramChild, true, true
+		}
+		return n.starChild, false, n.starChild != nil
 	}
 	child, ok := n.children[seg]
 	if !ok {
-		return n.starChild, n.starChild != nil
+		if n.paramChild != nil {
+			return n.paramChild, true, true
+		}
+		return n.starChild, false, n.starChild != nil
 	}
-	return child, true
+	return child, false, true
 }
 
 //	type tree struct {
@@ -138,5 +171,13 @@ type node struct {
 
 	// 通配符匹配
 	starChild *node
+
+	// 路径参数
+	paramChild *node
 	// 用户注册业务逻辑
+}
+
+type matchInfo struct {
+	n          *node
+	pathParams map[string]string
 }
